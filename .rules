@@ -1,0 +1,89 @@
+# Android/Kotlin coding guidelines
+
+* Prioritize correctness, clear user-visible behavior, and data safety over cleverness.
+* Prefer implementing functionality in existing files unless it creates a new screen, reusable component, domain type, or test fixture. Avoid creating many small files.
+* Do not write comments that merely narrate Kotlin or Compose code. Comments should explain tricky reasons, product constraints, or privacy constraints.
+* Avoid `!!`, unchecked casts, and silent `catch` blocks in production code. Propagate, model, or surface errors instead.
+* Use full words for domain concepts. Avoid abbreviating session, finding, severity, note, evidence, section, draft wording, or snapshot.
+
+# SpecLens product traps
+
+* SpecLens is local-first and private by default. Do not add analytics, crash reporting, cloud sync, remote logging, AI API calls, or network transmission of review content unless explicitly requested.
+* Treat sessions, markdown snapshots, private notes, evidence, findings, draft wording, and exported review text as user data. Do not log them, send them over the network, or put realistic sensitive examples in fixtures.
+* Preserve the core workflow and bottom-nav order: Sessions, Review, Triage, Publish. Do not reshuffle product terminology or navigation as drive-by cleanup.
+* Avoid creative product additions unless explicitly requested.
+* The existing `GEMINI_API_KEY`, Firebase BOM, Retrofit, OkHttp, and commented dependencies are template/plumbing leftovers unless the task explicitly activates them. Do not wire them into review content by default.
+
+# Compose
+
+* New reusable composables should be stateless where practical: immutable values in, event lambdas out. Do not pass a ViewModel into new leaf components.
+* When touching Flow-backed Compose state collection, prefer `collectAsStateWithLifecycle()` over plain `collectAsState()`.
+* Use Material 3 components and `MaterialTheme` tokens. Do not add hardcoded feature colors.
+* Preserve existing `Modifier.testTag(...)` values unless intentionally updating tests. Add stable tags for new navigation-critical or interaction-critical UI.
+* Use `contentDescription = null` only for purely decorative visuals.
+
+# State and persistence
+
+* Keep Room access behind repository/data-layer APIs. Composables must not call DAOs or `AppDatabase.getDatabase(...)`.
+* Before changing Room entities or database version, decide whether existing user data should survive. For durable changes, add a migration and migration test instead of relying on destructive migration.
+* Expose immutable ViewModel state. Keep mutable flows private and expose `StateFlow`, immutable data classes, or read-only collections.
+* Do not use randomness for durable user-visible IDs, hashes, filenames, or snapshots. Use a database-backed or deterministic source.
+* Do not add new durable domain state that stores transient display labels such as `Today`.
+
+# Gradle, signing, and template leftovers
+
+* Use the version catalog in `gradle/libs.versions.toml` for new dependencies.
+* Do not upgrade AGP, Kotlin, Gradle, Compose BOM, Room, KSP, Robolectric, RoboRazzi, SDK versions, namespace, applicationId, or package names as part of unrelated work.
+* Do not rename `com.example`, `My Application`, or AI Studio template leftovers as drive-by cleanup. If renaming, do it consistently across Gradle, manifest/resources, tests, imports, and generated references.
+* Do not remove debug signing or follow README-only local setup steps in committed changes unless the task is explicitly about signing or CI.
+* Never commit real `.env` values, API keys, keystores, passwords, private markdown, or generated user exports. `.env.example` may contain placeholders only.
+
+# Tests and validation
+
+* For production code changes, run `./gradlew :app:testDebugUnitTest`.
+* For build, manifest, resource, Gradle, dependency, or signing changes, also run `./gradlew :app:assembleDebug`.
+* For UI behavior, prefer Compose/Robolectric tests when they cover the behavior without an emulator.
+* Update RoboRazzi screenshot baselines only for intentional visual changes, and mention the visual delta.
+* Do not delete assertions, screenshot baselines, or test tags just to make tests pass.
+
+# Pull request hygiene
+
+* Keep changes scoped. Avoid broad formatting sweeps, opportunistic rewrites, package renames, and dependency upgrades.
+* In PR summaries, include user-visible behavior, privacy/data impact, tests run, and anything not validated.
+* Use a clear imperative PR title. Avoid conventional-commit prefixes unless the repo adopts them.
+
+# Rules Hygiene
+
+These `.rules` instructions are read by every agent session. Keep them high-signal.
+
+## After any agentic session
+
+If you discover a non-obvious pattern that would help future sessions, include a **"Suggested .rules additions"** heading in the PR description with the proposed text.
+
+Do **not** edit `.rules` inline during normal feature, fix, or refactor work. Reviewers decide what gets merged.
+
+## High bar for new rules
+
+Editing or clarifying existing rules is welcome. New rules must meet all three criteria:
+
+1. **Non-obvious**: someone familiar with Android/Kotlin or this codebase could still get it wrong.
+2. **Repeatedly encountered**: it came up more than once, including multiple hits in one session.
+3. **Specific enough to act on**: it gives a concrete instruction, not a vague principle.
+
+Rules that apply to a single module, package, or screen belong near that code, not in the repo root.
+
+## What not to put in `.rules`
+
+Avoid architecture descriptions, module maps, data-flow tours, broad Android advice, or lists of important types.
+
+Those go stale fast, and agents can inspect the code. Rules should be traps to avoid, not maps to follow.
+
+## No drive-by additions
+
+Rules emerge from validated patterns, not one-off observations.
+
+The workflow is:
+
+1. An agent notes a pattern during a session.
+2. The team validates the pattern in review.
+3. A dedicated commit adds or clarifies the rule with context on why it exists.
